@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watermark</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="container" class="top-right">
+    <header>
+      <img src="logo.gif" alt="Watermark" />
+    </header>
+    <aside id="stats">
+      <div class="stat">
+        <img src="money.png" alt="Money" />
+        <span class="value" id="stat-money">--</span>
+      </div>
+      <div class="stat">
+        <img src="gold.png" alt="Gold" />
+        <span class="value" id="stat-gold">--</span>
+      </div>
+      <div class="stat stat-id">
+        <img src="id.gif" alt="ID" />
+        <span class="value" id="stat-id">--</span>
+      </div>
+    </aside>
+  </div>
+  <div id="hud-clock">
+    <div class="clock-line">
+      <span id="real-date">--/--/----</span>
+      <span class="sep">•</span>
+      <span id="real-time">--:--</span>
+    </div>
+    <div class="clock-line">
+      <span class="label">IGT:</span>
+      <span id="game-time">--:--</span>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
