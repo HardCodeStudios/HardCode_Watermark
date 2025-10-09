@@ -71,7 +71,7 @@ end)
 
 CreateThread(function()
     while true do
-        Citizen.Wait(1500)
+        Citizen.Wait(800)
         if isUiOpen and not userTurnedOff then _sendStats(false) end
     end
 end)

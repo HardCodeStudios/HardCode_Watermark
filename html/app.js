@@ -3,6 +3,43 @@ function formatNum(n) {
   try { return Number(n).toLocaleString(); } catch (_) { return String(n); }
 }
 
+function formatAmountHTML(input) {
+  try {
+    if (input === null || input === undefined) return '<span class="whole">--</span>';
+    let s = String(input).trim().replace(/\s+/g, "").replace(/[,']/g, "");
+    let n = Number(s);
+    if (!isFinite(n)) return `<span class="whole">${s}</span>`;
+    n = Math.round(n * 100) / 100;
+    const neg = n < 0 ? "-" : "";
+    n = Math.abs(n);
+    let [whole, frac] = n.toFixed(2).split(".");
+    whole = String(whole).replace(/^0+(?=\d)/, "");
+    frac = (frac || "").replace(/0+$/, "");
+    const wholeHTML = `<span class="whole">${neg}${whole}</span>`;
+    const fracHTML  = frac.length ? `<span class="cents">.${frac}</span>` : "";
+    return wholeHTML + fracHTML;
+  } catch {
+    return '<span class="whole">--</span>';
+  }
+}
+
+function syncBarsToText() {
+  const m = document.getElementById('stat-money');
+  const g = document.getElementById('stat-gold');
+  if (m) {
+    const w = Math.ceil(m.getBoundingClientRect().width);
+    m.style.setProperty('--money-width', w + 'px');
+  }
+  if (g) {
+    const w = Math.ceil(g.getBoundingClientRect().width);
+    g.style.setProperty('--gold-width', w + 'px');
+  }
+}
+
+function scheduleSyncBars() {
+  requestAnimationFrame(() => requestAnimationFrame(syncBarsToText));
+}
+
 (function initUiScale(){
   const BASE_W = 1920;
   const BASE_H = 1080;
@@ -14,6 +51,7 @@ function formatNum(n) {
     const s = Math.min(w/BASE_W, h/BASE_H);
     const clamped = Math.max(MIN_S, Math.min(MAX_S, s));
     document.documentElement.style.setProperty('--ui-scale', clamped);
+    scheduleSyncBars();
   }
   let t = null;
   window.addEventListener('resize', () => { if (t) clearTimeout(t); t = setTimeout(applyScale, 120); });
@@ -29,8 +67,10 @@ function formatNum(n) {
     const yyyy = now.getFullYear();
     const hh = pad(now.getHours());
     const mi = pad(now.getMinutes());
-    document.getElementById('real-date').textContent = `${dd}/${mm}/${yyyy}`;
-    document.getElementById('real-time').textContent = `${hh}:${mi}`;
+    const elDate = document.getElementById('real-date');
+    const elTime = document.getElementById('real-time');
+    if (elDate) elDate.textContent = `${dd}/${mm}/${yyyy}`;
+    if (elTime) elTime.textContent = `${hh}:${mi}`;
   }
   tick();
   setInterval(tick, 1000);
@@ -39,7 +79,6 @@ function formatNum(n) {
 window.addEventListener('message', function (e) {
   const data = e.data || {};
   const container = document.getElementById('container');
-
   if (data.type === 'DisplayWM') {
     if (data.visible === true) {
       const position = data.position || 'top-right';
@@ -49,9 +88,13 @@ window.addEventListener('message', function (e) {
       container.style.opacity = 1;
       if (data.stats) {
         const s = data.stats;
-        document.getElementById('stat-money').textContent = formatNum(s.money);
-        document.getElementById('stat-gold').textContent  = formatNum(s.gold);
-        document.getElementById('stat-id').textContent    = (s.displayId ?? "--");
+        const elMoney = document.getElementById('stat-money');
+        const elGold  = document.getElementById('stat-gold');
+        const elId    = document.getElementById('stat-id');
+        if (elMoney) elMoney.innerHTML = formatAmountHTML(s.money);
+        if (elGold)  elGold.innerHTML  = formatAmountHTML(s.gold);
+        if (elId)    elId.textContent  = (s.displayId ?? "--");
+        scheduleSyncBars();
       }
     } else {
       container.style.opacity = 0;
@@ -64,24 +107,34 @@ window.addEventListener('message', function (e) {
     const position = data.position || 'top-right';
     container.classList.remove("top-right","top-left","bottom-right","bottom-left");
     container.classList.add(position);
+    scheduleSyncBars();
     return;
   }
 
   if (data.type === 'SetStats') {
-    document.getElementById('stat-money').textContent = formatNum(data.money);
-    document.getElementById('stat-gold').textContent  = formatNum(data.gold);
-    document.getElementById('stat-id').textContent    = (data.displayId ?? "--");
+    const elMoney = document.getElementById('stat-money');
+    const elGold  = document.getElementById('stat-gold');
+    const elId    = document.getElementById('stat-id');
+    if (elMoney) elMoney.innerHTML = formatAmountHTML(data.money);
+    if (elGold)  elGold.innerHTML  = formatAmountHTML(data.gold);
+    if (elId)    elId.textContent  = (data.displayId ?? "--");
+    scheduleSyncBars();
     return;
   }
 
   if (data.type === 'SetClock') {
-    if (typeof data.gameTime === 'string') document.getElementById('game-time').textContent = data.gameTime;
+    if (typeof data.gameTime === 'string') {
+      const elGT = document.getElementById('game-time');
+      if (elGT) elGT.textContent = data.gameTime;
+    }
     return;
   }
 
   if (data.type === 'ToggleClock') {
     const hud = document.getElementById('hud-clock');
-    hud.classList.toggle('hidden', data.visible === false);
+    if (hud) hud.classList.toggle('hidden', data.visible === false);
     return;
   }
 });
+
+window.addEventListener('resize', scheduleSyncBars);

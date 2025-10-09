@@ -20,6 +20,19 @@
   --igt-color: #ff3b30;
   --igt-stroke: #000000;
   --igt-stroke-size: 1px;
+  --bar-max: 80px;
+  --bar-height: 1px;
+  --bar-radius: 999px;
+  --bar-gap-top: 4px;
+
+  --money-bar-start: #2ecc71;
+  --money-bar-end:   #27ae60;
+
+  --gold-bar-start:  #ffd777;
+  --gold-bar-end:    #d4a017;
+
+  --money-ratio: 0;
+  --gold-ratio:  0;
 }
 
 img { image-rendering: auto; }
@@ -98,6 +111,14 @@ header img {
   letter-spacing: 0.3px;
 }
 
+.value .cents {
+  font-size: calc(var(--value-font) * 0.85 * var(--ui-scale));
+  line-height: 1;
+  vertical-align: baseline;
+  margin-left: calc(1px * var(--ui-scale));
+  opacity: 0.95;
+}
+
 #container, #container * { pointer-events: none; }
 
 #hud-clock {
@@ -107,7 +128,6 @@ header img {
   min-width: calc(100px * var(--ui-scale));
   padding: calc(var(--clock-pad-y) * var(--ui-scale)) calc(var(--clock-pad-x) * var(--ui-scale));
   border-radius: calc(var(--clock-radius) * var(--ui-scale));
-  /* background: rgba(0,0,0,0.35); */
   background-image: url(../html/tooltip.png);
   opacity: 0.7;
   color: #fff;
@@ -156,3 +176,32 @@ header img {
      var(--igt-stroke-size)   var(--igt-stroke-size)           var(--igt-stroke);
 }
 #hud-clock.hidden { display: none; }
+
+#stat-money,
+#stat-gold {
+  position: relative;
+  display: inline-block;
+  padding-bottom: calc( (var(--bar-height) + var(--bar-gap-top)) * var(--ui-scale) );
+}
+
+#stat-money::after,
+#stat-gold::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: calc(var(--bar-height) * var(--ui-scale));
+  border-radius: calc(var(--bar-radius) * var(--ui-scale));
+  box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  transform: translateZ(0);
+}
+
+#stat-money::after {
+  background: linear-gradient(90deg, var(--money-bar-start), var(--money-bar-end));
+  width: var(--money-width, 0px);
+}
+
+#stat-gold::after {
+  background: linear-gradient(90deg, var(--gold-bar-start), var(--gold-bar-end));
+  width: var(--gold-width, 0px);
+}
