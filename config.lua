@@ -5,4 +5,5 @@ config.position = 'top-left'
 -- Framework: 'vorp', 'rsg', 'redemrp'
 config.framework = 'vorp'
 -- Permetti al player di disattivare il logo
+config.VorpMenu = true
 config.allowoff = true

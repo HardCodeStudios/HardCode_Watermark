@@ -2,9 +2,41 @@ local isUiOpen      = false
 local userTurnedOff = false
 local KVP_OFF_KEY   = "hc_watermark_off"
 local KVP_POS_KEY   = "hc_watermark_position"
-
 local _last = { money = nil, gold = nil, displayId = nil }
 local __displayIdFromServer = nil
+
+local function _vorpEnabled()
+    return (Config and Config.VorpMenu == true)
+        or (config and (config.VorpMenu == true or config.vorpMenu == true))
+end
+
+local function _safeGetMenuData()
+    if not _vorpEnabled() then return nil end
+    local ok, data = pcall(function() return exports["vorp_menu"]:GetMenuData() end)
+    if ok and type(data) == "table" then return data end
+    return nil
+end
+
+local function _anyMenuOpen()
+    local md = _safeGetMenuData()
+    if not md then return false end
+    local count = (type(md._openCount) == "number") and md._openCount or 0
+    if count > 0 then return true end
+    if type(md.Opened) == "table" then
+        for i = 1, #md.Opened do
+            if md.Opened[i] ~= nil then return true end
+        end
+        for _, v in pairs(md.Opened) do
+            if v ~= nil then return true end
+        end
+    end
+
+    return false
+end
+
+local function _isBlocked()
+    return IsPauseMenuActive() or _anyMenuOpen()
+end
 
 local function _getSavedPosition()
     local pos = GetResourceKvpString(KVP_POS_KEY)
@@ -51,7 +83,7 @@ CreateThread(function()
     local prev = false
     while true do
         Citizen.Wait(150)
-        local blocked = IsRadarHidden() or IsPauseMenuActive()
+        local blocked = _isBlocked()
         if blocked ~= prev then
             prev = blocked
             if not userTurnedOff then showWM(not blocked) end
@@ -61,11 +93,24 @@ CreateThread(function()
 end)
 
 CreateThread(function()
+    while true do
+        Citizen.Wait(250)
+        local blocked = _isBlocked()
+        if (not blocked) and (not userTurnedOff) and (not isUiOpen) then
+            showWM(true)
+            SendNUIMessage({ type='ToggleClock', visible=true })
+            _sendStats(true)
+        end
+    end
+end)
+
+CreateThread(function()
     userTurnedOff = (GetResourceKvpInt(KVP_OFF_KEY) == 1)
     while not NetworkIsSessionStarted() do Citizen.Wait(500) end
     Citizen.Wait(2000)
-    showWM(not userTurnedOff)
-    if not userTurnedOff then _sendStats(true) end
+    local blocked = _isBlocked()
+    showWM(not (userTurnedOff or blocked))
+    if not userTurnedOff and not blocked then _sendStats(true) end
     TriggerServerEvent("hcwm:requestGameId")
 end)
 
@@ -86,21 +131,24 @@ end)
 if config and config.framework == 'vorp' then
     AddEventHandler("vorp:SelectedCharacter", function(_)
         Citizen.SetTimeout(2000, function()
-            if not userTurnedOff then showWM(true) _sendStats(true) end
+            local blocked = _isBlocked()
+            if not userTurnedOff and not blocked then showWM(true) _sendStats(true) end
             TriggerServerEvent("hcwm:requestGameId")
         end)
     end)
 elseif config and config.framework == 'rsg' then
     AddEventHandler("RSGCore:Client:OnPlayerLoaded", function(_)
         Citizen.SetTimeout(2000, function()
-            if not userTurnedOff then showWM(true) _sendStats(true) end
+            local blocked = _isBlocked()
+            if not userTurnedOff and not blocked then showWM(true) _sendStats(true) end
             TriggerServerEvent("hcwm:requestGameId")
         end)
     end)
 elseif config and config.framework == 'redemrp' then
     AddEventHandler("redemrp_charselect:SpawnCharacter", function()
         Citizen.SetTimeout(2000, function()
-            if not userTurnedOff then showWM(true) _sendStats(true) end
+            local blocked = _isBlocked()
+            if not userTurnedOff and not blocked then showWM(true) _sendStats(true) end
             TriggerServerEvent("hcwm:requestGameId")
         end)
     end)
@@ -120,8 +168,10 @@ RegisterNetEvent('DisplayWM')
 AddEventHandler('DisplayWM', function(status)
     userTurnedOff = not status
     SetResourceKvpInt(KVP_OFF_KEY, userTurnedOff and 1 or 0)
-    showWM(status)
-    if status then _sendStats(true) end
+    local blocked = _isBlocked()
+    local visible = status and (not blocked)
+    showWM(visible)
+    if visible then _sendStats(true) end
 end)
 
 RegisterNetEvent('SetWMPosition')
